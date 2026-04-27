@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# rok-admin
 
-## Getting Started
+Admin panel for the 4028 Huns landing. Next.js 16 + Tailwind v4. Talks to
+[`rok-api`](../rok-api) for CRUD on migration requirements, media, and DKP
+scan uploads.
 
-First, run the development server:
+Auth is a simple bearer token typed once on `/login` and stored in
+`localStorage`. The token must match `ADMIN_TOKEN` set on the API.
+
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local
+# point NEXT_PUBLIC_API_URL at your local or deployed rok-api
+npm run dev -- -p 3001    # http://localhost:3001 (3000 is the landing)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Free deploy
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Full end-to-end walkthrough (Neon + Render + Vercel) lives in [`rok-api/DEPLOY.md`](../rok-api/DEPLOY.md). Short version:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Vercel
 
-## Learn More
+1. Sign in at <https://vercel.com> with GitHub.
+2. **Add New → Project** → pick this repo.
+3. **Environment Variables** (Production + Preview):
+   - `NEXT_PUBLIC_API_URL` = `https://<your-rok-api>.onrender.com`
+   - `NEXT_PUBLIC_LANDING_URL` = `https://<your-landing>.vercel.app` (optional — used for the "View on landing" link on the DKP page)
+4. **Deploy**.
+5. Append the resulting Vercel URL to the API's `CORS_ORIGINS` env var on Render.
+6. Open `https://rok-admin-xxx.vercel.app/login` and paste the `ADMIN_TOKEN` you set on the API.
 
-To learn more about Next.js, take a look at the following resources:
+## Pages
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Route           | Purpose                                                    |
+| --------------- | ---------------------------------------------------------- |
+| `/login`        | Token entry                                                |
+| `/requirements` | CRUD migration requirements (icon picker, ordering, active flag) |
+| `/media`        | CRUD YouTube media — paste URL, title auto-fetched via oEmbed; bulk re-fetch action |
+| `/dkp`          | Drag-and-drop xlsx upload (replaces the entire scan); danger-zone wipe |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Stack
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js 16 / React 19 / TypeScript / Tailwind v4 / Lucide.
