@@ -3,11 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Shield, Trophy, Users, Video } from "lucide-react";
+import { Crown, LogOut, Shield, Trophy, Users, Video } from "lucide-react";
 import { checkAuth, tokenStorage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const NAV = [
+  { href: "/kingdom-stats", label: "Stats", icon: Crown },
   { href: "/requirements", label: "Migration", icon: Users },
   { href: "/media", label: "Media", icon: Video },
   { href: "/dkp", label: "DKP", icon: Trophy },

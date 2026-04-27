@@ -1,3 +1,14 @@
+export type KingdomStat = {
+  id: string;
+  label: string;
+  value: string;
+  iconKey: string;
+  order: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type Requirement = {
   id: string;
   title: string;

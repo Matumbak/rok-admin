@@ -3,6 +3,7 @@
 import type {
   DkpListResponse,
   DkpQuery,
+  KingdomStat,
   MediaItem,
   Requirement,
 } from "./types";
@@ -64,6 +65,34 @@ async function request<T>(
 }
 
 export { ApiError };
+
+// ── Kingdom stats ─────────────────────────────────────────
+export const kingdomStatsApi = {
+  listAdmin: () =>
+    request<{ items: KingdomStat[] }>(
+      "/api/kingdom-stats/admin",
+      { method: "GET" },
+      { auth: true },
+    ),
+  create: (data: Partial<KingdomStat>) =>
+    request<KingdomStat>(
+      "/api/kingdom-stats",
+      { method: "POST", body: JSON.stringify(data) },
+      { auth: true },
+    ),
+  update: (id: string, data: Partial<KingdomStat>) =>
+    request<KingdomStat>(
+      `/api/kingdom-stats/${id}`,
+      { method: "PATCH", body: JSON.stringify(data) },
+      { auth: true },
+    ),
+  remove: (id: string) =>
+    request<void>(
+      `/api/kingdom-stats/${id}`,
+      { method: "DELETE" },
+      { auth: true },
+    ),
+};
 
 // ── Requirements ──────────────────────────────────────────
 export const requirementsApi = {
