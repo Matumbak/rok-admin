@@ -16,6 +16,7 @@ import {
   ApplicationsListResponse,
   ApplicationStatus,
   ApplicationsQuery,
+  MigrationApplicationListItem,
 } from "@/lib/types";
 import { Button, Input, PageHeader, Toast } from "@/components/ui";
 import { cn, formatRokNumber } from "@/lib/utils";
@@ -69,7 +70,12 @@ export default function ApplicationsPage() {
   const [toast, setToast] = React.useState<string | null>(null);
   const [powerMin, setPowerMin] = React.useState("");
   const [kpMin, setKpMin] = React.useState("");
+  const [maxValorMin, setMaxValorMin] = React.useState("");
+  const [marchesMin, setMarchesMin] = React.useState("");
+  const [kingdom, setKingdom] = React.useState("");
+  const [since, setSince] = React.useState("");
   const [scrollsOnly, setScrollsOnly] = React.useState(false);
+  const [advancedOpen, setAdvancedOpen] = React.useState(false);
 
   /**
    * Convert "84M" / "1.2B" / "84,000,000" into a Float matching the
@@ -100,7 +106,19 @@ export default function ApplicationsPage() {
   // Reset to page 1 whenever filters change.
   React.useEffect(() => {
     setPage(1);
-  }, [statusFilter, debounced, sortBy, sortDir, powerMin, kpMin, scrollsOnly]);
+  }, [
+    statusFilter,
+    debounced,
+    sortBy,
+    sortDir,
+    powerMin,
+    kpMin,
+    maxValorMin,
+    marchesMin,
+    kingdom,
+    since,
+    scrollsOnly,
+  ]);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -115,6 +133,12 @@ export default function ApplicationsPage() {
         pageSize: 25,
         powerMin: parseRokInput(powerMin) ?? undefined,
         killPointsMin: parseRokInput(kpMin) ?? undefined,
+        maxValorPointsMin: parseRokInput(maxValorMin) ?? undefined,
+        marchesMin: marchesMin
+          ? Number.parseInt(marchesMin, 10) || undefined
+          : undefined,
+        kingdom: kingdom.trim() || undefined,
+        since: since || undefined,
         hasScrolls: scrollsOnly || undefined,
       };
       const res = await applicationsApi.list(query);
@@ -124,7 +148,20 @@ export default function ApplicationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, debounced, sortBy, sortDir, page, powerMin, kpMin, scrollsOnly]);
+  }, [
+    statusFilter,
+    debounced,
+    sortBy,
+    sortDir,
+    page,
+    powerMin,
+    kpMin,
+    maxValorMin,
+    marchesMin,
+    kingdom,
+    since,
+    scrollsOnly,
+  ]);
 
   React.useEffect(() => {
     load();
@@ -183,6 +220,10 @@ export default function ApplicationsPage() {
           debounced ||
           powerMin ||
           kpMin ||
+          maxValorMin ||
+          marchesMin ||
+          kingdom ||
+          since ||
           scrollsOnly) && (
           <button
             type="button"
@@ -191,6 +232,10 @@ export default function ApplicationsPage() {
               setSearch("");
               setPowerMin("");
               setKpMin("");
+              setMaxValorMin("");
+              setMarchesMin("");
+              setKingdom("");
+              setSince("");
               setScrollsOnly(false);
             }}
             className="text-xs text-muted hover:text-foreground inline-flex items-center gap-1"
@@ -200,31 +245,32 @@ export default function ApplicationsPage() {
           </button>
         )}
 
-        <div className="ml-auto relative">
+        <div className="ml-auto relative w-full sm:w-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="nickname / governor ID / discord"
-            className="pl-9 w-72"
+            className="pl-9 w-full sm:w-72"
           />
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-4 text-xs">
+      {/* Always-visible primary filter row */}
+      <div className="flex flex-wrap items-center gap-2 mb-2 text-xs">
         <Input
           value={powerMin}
           onChange={(e) => setPowerMin(e.target.value)}
-          placeholder="min power (e.g. 80M)"
-          className="w-44"
+          placeholder="min power (80M)"
+          className="w-36 sm:w-44"
         />
         <Input
           value={kpMin}
           onChange={(e) => setKpMin(e.target.value)}
-          placeholder="min KP (e.g. 100M)"
-          className="w-44"
+          placeholder="min KP (100M)"
+          className="w-36 sm:w-44"
         />
-        <label className="inline-flex items-center gap-2 text-muted cursor-pointer">
+        <label className="inline-flex items-center gap-2 text-muted cursor-pointer h-10 px-3 border border-border-bronze">
           <input
             type="checkbox"
             checked={scrollsOnly}
@@ -233,9 +279,96 @@ export default function ApplicationsPage() {
           />
           has scrolls
         </label>
+        <button
+          type="button"
+          onClick={() => setAdvancedOpen((v) => !v)}
+          className="h-10 px-3 border border-border-bronze text-muted hover:text-foreground hover:border-accent transition-colors"
+        >
+          {advancedOpen ? "− advanced" : "+ advanced"}
+        </button>
       </div>
 
-      <div className="bg-card/80 border border-border-bronze/70 overflow-hidden">
+      {/* Collapsible advanced filters */}
+      {advancedOpen && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mb-4 text-xs">
+          <Input
+            value={maxValorMin}
+            onChange={(e) => setMaxValorMin(e.target.value)}
+            placeholder="min max valor (5M)"
+          />
+          <Input
+            value={marchesMin}
+            onChange={(e) => setMarchesMin(e.target.value)}
+            placeholder="min marches"
+          />
+          <Input
+            value={kingdom}
+            onChange={(e) => setKingdom(e.target.value)}
+            placeholder="kingdom"
+          />
+          <Input
+            type="date"
+            value={since}
+            onChange={(e) => setSince(e.target.value)}
+            placeholder="submitted since"
+          />
+        </div>
+      )}
+
+      {/* Mobile cards. Same data the table shows, just laid out vertically
+          so admins on phones don't need horizontal scroll. */}
+      <div className="md:hidden space-y-3">
+        {loading && (
+          <div className="p-12 text-center text-muted border border-border-bronze/50 bg-card/40">
+            <Loader2 className="inline h-5 w-5 animate-spin mr-2" />
+            Loading…
+          </div>
+        )}
+        {!loading && error && (
+          <div className="p-8 text-center text-danger border border-danger/40 bg-danger/10">
+            {error}
+          </div>
+        )}
+        {!loading && !error && data?.items.length === 0 && (
+          <div className="p-12 text-center text-muted border border-border-bronze/50 bg-card/40">
+            No applications match these filters.
+          </div>
+        )}
+        {!loading &&
+          !error &&
+          data?.items.map((row) => (
+            <ApplicationCard key={row.id} row={row} />
+          ))}
+        {data && data.totalPages > 1 && (
+          <div className="flex items-center justify-between pt-2 text-xs text-muted">
+            <span>
+              Page {data.page} / {data.totalPages} · {data.total}
+            </span>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  setPage((p) => Math.min(data.totalPages, p + 1))
+                }
+                disabled={page >= data.totalPages}
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="hidden md:block bg-card/80 border border-border-bronze/70 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -392,6 +525,109 @@ export default function ApplicationsPage() {
 
       {toast && <Toast message={toast} variant="info" />}
     </>
+  );
+}
+
+/* ── mobile card ─────────────────────────────────────────────────── */
+
+function ApplicationCard({
+  row,
+}: {
+  row: MigrationApplicationListItem;
+}) {
+  const stat = (label: string, value: React.ReactNode, mono?: boolean) =>
+    value === null || value === undefined || value === "—" ? null : (
+      <div className="flex items-baseline justify-between gap-2 min-w-0">
+        <span className="text-[10px] uppercase tracking-[0.15em] text-muted truncate">
+          {label}
+        </span>
+        <span
+          className={cn(
+            "text-foreground shrink-0",
+            mono && "font-mono text-xs",
+          )}
+        >
+          {value}
+        </span>
+      </div>
+    );
+
+  return (
+    <Link
+      href={`/applications/${row.id}`}
+      className="block border border-border-bronze/60 bg-card/70 backdrop-blur-sm p-4 hover:border-accent/50 transition-colors"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-medium text-foreground tracking-[0.04em] uppercase truncate">
+            {row.nickname}
+          </div>
+          <div className="text-[10px] text-muted mt-0.5 tracking-[0.15em] uppercase font-mono">
+            #{row.governorId} · KD {row.currentKingdom}
+            {row.currentAlliance ? ` · [${row.currentAlliance}]` : ""}
+          </div>
+        </div>
+        <span
+          className={cn(
+            "shrink-0 inline-flex px-2 py-0.5 text-[10px] uppercase tracking-[0.15em] border",
+            STATUS_STYLES[row.status],
+          )}
+        >
+          {row.status}
+        </span>
+      </div>
+
+      <div className="mt-3 flex items-baseline justify-between gap-2 border-t border-border-bronze/40 pt-3">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-muted">
+          Power
+        </span>
+        <span className="text-lg text-accent-bright font-medium">
+          {row.powerN != null ? formatRokNumber(row.powerN) : row.power || "—"}
+        </span>
+      </div>
+
+      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+        {stat(
+          "KP",
+          row.killPointsN != null
+            ? formatRokNumber(row.killPointsN)
+            : row.killPoints || "—",
+        )}
+        {stat(
+          "T4",
+          row.t4KillsN != null
+            ? formatRokNumber(row.t4KillsN)
+            : row.t4Kills || "—",
+        )}
+        {stat(
+          "T5",
+          row.t5KillsN != null
+            ? formatRokNumber(row.t5KillsN)
+            : row.t5Kills || "—",
+        )}
+        {stat(
+          "Deaths",
+          row.deathsN != null
+            ? formatRokNumber(row.deathsN)
+            : row.deaths || "—",
+        )}
+        {stat("VIP", row.vipLevel || "—")}
+        {stat(
+          "Max valor",
+          row.maxValorPointsN != null
+            ? formatRokNumber(row.maxValorPointsN)
+            : null,
+        )}
+        {stat("Marches", row.marches != null ? String(row.marches) : null)}
+        {stat("Scrolls", row.hasScrolls ? "✓" : null)}
+        {stat("Discord", row.discordHandle, true)}
+      </div>
+
+      <div className="mt-3 pt-2 border-t border-border-bronze/30 flex items-center justify-between text-[10px] text-muted">
+        <span>{(row.screenshots ?? []).length} screenshots</span>
+        <span>{new Date(row.createdAt).toLocaleString()}</span>
+      </div>
+    </Link>
   );
 }
 

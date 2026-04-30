@@ -104,6 +104,7 @@ export type MigrationApplicationListItem = {
   t4Kills: string | null;
   t5Kills: string | null;
   deaths: string | null;
+  marches: number | null;
   hasScrolls: boolean;
   status: ApplicationStatus;
   createdAt: string;
@@ -121,19 +122,24 @@ export type MigrationApplicationListItem = {
   foodN: number | null;
   previousKvkDkpN: number | null;
   speedupsMinutes: number | null;
+
+  // Lifetime KvK proxy.
+  maxValorPointsN: number | null;
 };
 
 export type MigrationApplicationDetail = MigrationApplicationListItem & {
   t1Kills: string | null;
   t2Kills: string | null;
   t3Kills: string | null;
-  healed: string | null;
   resourcesGathered: string | null;
 
   food: string | null;
   wood: string | null;
   stone: string | null;
   gold: string | null;
+
+  /// Profile screen — only Max valor (lifetime) is kept as a KvK proxy.
+  maxValorPoints: string | null;
 
   speedupsUniversalMinutes: number | null;
   speedupsConstructionMinutes: number | null;
@@ -190,5 +196,11 @@ export type ApplicationsQuery = {
   woodMin?: number;
   stoneMin?: number;
   goldMin?: number;
+  maxValorPointsMin?: number;
+  marchesMin?: number;
+  marchesMax?: number;
   hasScrolls?: boolean;
+  /** ISO date range — application createdAt. */
+  since?: string;
+  until?: string;
 };

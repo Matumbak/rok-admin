@@ -225,6 +225,12 @@ export const applicationsApi = {
       qs.set("killPointsMax", String(query.killPointsMax));
     if (query.t4KillsMin != null) qs.set("t4KillsMin", String(query.t4KillsMin));
     if (query.t5KillsMin != null) qs.set("t5KillsMin", String(query.t5KillsMin));
+    if (query.maxValorPointsMin != null)
+      qs.set("maxValorPointsMin", String(query.maxValorPointsMin));
+    if (query.marchesMin != null) qs.set("marchesMin", String(query.marchesMin));
+    if (query.marchesMax != null) qs.set("marchesMax", String(query.marchesMax));
+    if (query.since) qs.set("since", query.since);
+    if (query.until) qs.set("until", query.until);
     if (query.hasScrolls) qs.set("hasScrolls", "true");
     const qsStr = qs.toString();
     return request<ApplicationsListResponse>(

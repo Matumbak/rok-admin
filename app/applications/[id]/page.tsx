@@ -231,6 +231,24 @@ export default function ApplicationDetailPage() {
 
           <Card>
             <h3 className="font-semibold uppercase tracking-[0.18em] text-sm mb-4">
+              KvK record
+            </h3>
+            <Grid>
+              <Stat
+                label="Max valor (lifetime)"
+                value={app.maxValorPoints ?? "—"}
+                hint={
+                  app.maxValorPointsN != null
+                    ? formatRokNumber(app.maxValorPointsN)
+                    : undefined
+                }
+                highlight
+              />
+            </Grid>
+          </Card>
+
+          <Card>
+            <h3 className="font-semibold uppercase tracking-[0.18em] text-sm mb-4">
               Stats
             </h3>
             <Grid>
@@ -290,13 +308,6 @@ export default function ApplicationDetailPage() {
                 value={app.deaths ?? "—"}
                 hint={
                   app.deathsN != null ? formatRokNumber(app.deathsN) : undefined
-                }
-              />
-              <Stat
-                label="Healed"
-                value={app.healed ?? "—"}
-                hint={
-                  app.healedN != null ? formatRokNumber(app.healedN) : undefined
                 }
               />
               <Stat label="Resources gathered" value={app.resourcesGathered ?? "—"} />
