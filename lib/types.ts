@@ -75,3 +75,120 @@ export type DkpQuery = {
   page?: number;
   pageSize?: number;
 };
+
+export type ApplicationStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "archived";
+
+export type AppScreenshot = {
+  url: string;
+  pathname?: string;
+  category?: "account" | "commander" | "resource" | "dkp" | "other";
+  label?: string;
+  size?: number;
+  contentType?: string;
+};
+
+export type MigrationApplicationListItem = {
+  id: string;
+  governorId: string;
+  nickname: string;
+  currentKingdom: string;
+  currentAlliance: string | null;
+  power: string;
+  killPoints: string;
+  vipLevel: string;
+  discordHandle: string;
+  t4Kills: string | null;
+  t5Kills: string | null;
+  deaths: string | null;
+  hasScrolls: boolean;
+  status: ApplicationStatus;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt: string | null;
+  screenshots: AppScreenshot[];
+
+  // Normalized numeric copies for sortability and range filters.
+  powerN: number | null;
+  killPointsN: number | null;
+  t4KillsN: number | null;
+  t5KillsN: number | null;
+  deathsN: number | null;
+  healedN: number | null;
+  foodN: number | null;
+  previousKvkDkpN: number | null;
+  speedupsMinutes: number | null;
+};
+
+export type MigrationApplicationDetail = MigrationApplicationListItem & {
+  t1Kills: string | null;
+  t2Kills: string | null;
+  t3Kills: string | null;
+  healed: string | null;
+  resourcesGathered: string | null;
+
+  food: string | null;
+  wood: string | null;
+  stone: string | null;
+  gold: string | null;
+
+  speedupsUniversalMinutes: number | null;
+  speedupsConstructionMinutes: number | null;
+  speedupsResearchMinutes: number | null;
+  speedupsTrainingMinutes: number | null;
+  speedupsHealingMinutes: number | null;
+  speedupsBreakdown: Record<string, string> | null;
+
+  marches: number | null;
+  equipmentSummary: Record<string, string> | null;
+  previousKvkDkp: string | null;
+  activityHours: string | null;
+  timezone: string | null;
+  reason: string | null;
+  adminNotes: string | null;
+  blobCleanupAt: string | null;
+
+  t1KillsN: number | null;
+  t2KillsN: number | null;
+  t3KillsN: number | null;
+  resourcesGatheredN: number | null;
+  woodN: number | null;
+  stoneN: number | null;
+  goldN: number | null;
+
+  ocrRawText: string | null;
+};
+
+export type ApplicationsListResponse = {
+  items: MigrationApplicationListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  counts: Partial<Record<ApplicationStatus, number>>;
+};
+
+export type ApplicationsQuery = {
+  status?: ApplicationStatus[];
+  q?: string;
+  kingdom?: string;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+  /** Range filters in normalized numeric units (e.g. powerMin: 80_000_000). */
+  powerMin?: number;
+  powerMax?: number;
+  killPointsMin?: number;
+  killPointsMax?: number;
+  t4KillsMin?: number;
+  t5KillsMin?: number;
+  foodMin?: number;
+  woodMin?: number;
+  stoneMin?: number;
+  goldMin?: number;
+  hasScrolls?: boolean;
+};

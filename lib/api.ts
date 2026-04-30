@@ -1,10 +1,13 @@
 "use client";
 
 import type {
+  ApplicationsListResponse,
+  ApplicationsQuery,
   DkpListResponse,
   DkpQuery,
   KingdomStat,
   MediaItem,
+  MigrationApplicationDetail,
   Requirement,
 } from "./types";
 
@@ -197,6 +200,57 @@ export const dkpApi = {
   clearAll: () =>
     request<{ deleted: number }>(
       "/api/dkp",
+      { method: "DELETE" },
+      { auth: true },
+    ),
+};
+
+// ── Migration applications ───────────────────────────────
+export const applicationsApi = {
+  list: (query: ApplicationsQuery = {}) => {
+    const qs = new URLSearchParams();
+    if (query.status && query.status.length > 0)
+      qs.set("status", query.status.join(","));
+    if (query.q) qs.set("q", query.q);
+    if (query.kingdom) qs.set("kingdom", query.kingdom);
+    if (query.sortBy) qs.set("sortBy", query.sortBy);
+    if (query.sortDir) qs.set("sortDir", query.sortDir);
+    if (query.page) qs.set("page", String(query.page));
+    if (query.pageSize) qs.set("pageSize", String(query.pageSize));
+    if (query.powerMin != null) qs.set("powerMin", String(query.powerMin));
+    if (query.powerMax != null) qs.set("powerMax", String(query.powerMax));
+    if (query.killPointsMin != null)
+      qs.set("killPointsMin", String(query.killPointsMin));
+    if (query.killPointsMax != null)
+      qs.set("killPointsMax", String(query.killPointsMax));
+    if (query.t4KillsMin != null) qs.set("t4KillsMin", String(query.t4KillsMin));
+    if (query.t5KillsMin != null) qs.set("t5KillsMin", String(query.t5KillsMin));
+    if (query.hasScrolls) qs.set("hasScrolls", "true");
+    const qsStr = qs.toString();
+    return request<ApplicationsListResponse>(
+      `/api/migration-applications/admin${qsStr ? `?${qsStr}` : ""}`,
+      { method: "GET" },
+      { auth: true },
+    );
+  },
+
+  detail: (id: string) =>
+    request<MigrationApplicationDetail>(
+      `/api/migration-applications/${id}/admin`,
+      { method: "GET" },
+      { auth: true },
+    ),
+
+  patch: (id: string, data: Partial<MigrationApplicationDetail>) =>
+    request<MigrationApplicationDetail>(
+      `/api/migration-applications/${id}/admin`,
+      { method: "PATCH", body: JSON.stringify(data) },
+      { auth: true },
+    ),
+
+  remove: (id: string) =>
+    request<{ deleted: true }>(
+      `/api/migration-applications/${id}/admin`,
       { method: "DELETE" },
       { auth: true },
     ),
