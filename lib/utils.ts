@@ -51,6 +51,12 @@ export function formatRokNumber(n: number | null | undefined): string {
     break; // Largest unit didn't round-trip — don't try smaller ones.
   }
 
-  // Group digits with non-breaking spaces so the value never line-breaks.
-  return Math.round(n).toLocaleString("ru-RU");
+  // Group digits with non-breaking spaces. Locale-neutral on purpose —
+  // formatted output looks the same regardless of the user's runtime
+  // locale, and never line-breaks mid-number.
+  const sign = n < 0 ? "-" : "";
+  const grouped = Math.round(Math.abs(n))
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return sign + grouped;
 }
