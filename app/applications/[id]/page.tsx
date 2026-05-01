@@ -270,42 +270,23 @@ export default function ApplicationDetailPage() {
             <ScoreBar score={app.overallScore} />
             <div className="mt-5">
               <Label>Spending tier</Label>
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                {SPENDING_TIER_OPTIONS.map((opt) => {
-                  const active = app.spendingTier === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={async () => {
-                        if (active || saving) return;
-                        setSaving(true);
-                        try {
-                          const updated = await applicationsApi.patch(id, {
-                            spendingTier: opt.value,
-                          });
-                          setApp(updated);
-                          flash(`Spending tier → ${opt.label}`, "success");
-                        } catch (e) {
-                          flash(
-                            (e as Error).message ?? "save_failed",
-                            "error",
-                          );
-                        } finally {
-                          setSaving(false);
-                        }
-                      }}
-                      className={cn(
-                        "px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] border transition",
-                        active
-                          ? "border-accent text-accent-bright bg-accent/15"
-                          : "border-border-bronze/60 text-muted hover:border-accent/60",
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
+              <div className="mt-1">
+                {app.spendingTier ? (
+                  (() => {
+                    const opt = SPENDING_TIER_OPTIONS.find(
+                      (o) => o.value === app.spendingTier,
+                    );
+                    return (
+                      <span className="inline-flex items-center px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] border border-accent text-accent-bright bg-accent/15">
+                        {opt?.label ?? app.spendingTier}
+                      </span>
+                    );
+                  })()
+                ) : (
+                  <span className="text-xs text-muted italic">
+                    Applicant did not declare a tier.
+                  </span>
+                )}
               </div>
             </div>
             <div className="mt-5">
