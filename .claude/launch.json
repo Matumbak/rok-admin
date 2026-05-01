@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "rok-admin-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "3020"],
+      "port": 3020,
+      "autoPort": false,
+      "cwd": "/Users/benzanikita/WebstormProjects/rok-admin"
+    }
+  ]
+}

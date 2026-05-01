@@ -312,7 +312,7 @@ export default function ApplicationDetailPage() {
             <h3 className="font-semibold uppercase tracking-[0.18em] text-sm mb-4">
               Profile assessment
             </h3>
-            <ScoreBar score={app.overallScore} />
+            <ScoreBar score={app.overallScore} breakdown={app.scoreBreakdown} />
             <div className="mt-5">
               <Label>Scoring profile</Label>
               <div className="mt-1 flex flex-wrap gap-1.5">
@@ -1080,7 +1080,31 @@ function TagPill(props: {
   );
 }
 
-function ScoreBar(props: { score: number | null }) {
+/**
+ * Per-component cap table — must match scoring.ts CAPS exactly. Used
+ * to render the "X / cap" breakdown in the score popover so admin can
+ * see WHY a score landed where it did. Age is intentionally excluded
+ * from the popover per user feedback ("кроме возраста" — age is
+ * non-negotiable, no decision lever there).
+ */
+const SCORE_COMPONENT_DISPLAY: Array<{
+  key: keyof MigrationApplicationDetail["scoreBreakdown"];
+  label: string;
+  cap: number;
+}> = [
+  { key: "power", label: "Power", cap: 18 },
+  { key: "killPoints", label: "Kill points", cap: 18 },
+  { key: "deaths", label: "Deaths", cap: 14 },
+  { key: "valor", label: "Max valor", cap: 10 },
+  { key: "t5Kills", label: "T5 kills", cap: 12 },
+  { key: "prevKvkDkp", label: "Prev KvK DKP", cap: 8 },
+  { key: "vip", label: "VIP", cap: 8 },
+];
+
+function ScoreBar(props: {
+  score: number | null;
+  breakdown: MigrationApplicationDetail["scoreBreakdown"] | undefined;
+}) {
   const score = props.score ?? 0;
   const color =
     score >= 80
@@ -1092,16 +1116,22 @@ function ScoreBar(props: { score: number | null }) {
           : score >= 20
             ? "bg-amber-500"
             : "bg-red-500";
+  const breakdown = props.breakdown;
+
   return (
-    <div>
+    <div className="relative group">
       <div className="flex items-baseline justify-between mb-2">
         <span className="text-[10px] uppercase tracking-[0.18em] text-muted">
           Overall score
         </span>
-        <span className="font-mono text-2xl text-foreground">
+        <button
+          type="button"
+          className="font-mono text-2xl text-foreground cursor-help focus:outline-none"
+          aria-label="Show score breakdown"
+        >
           {props.score != null ? props.score.toFixed(1) : "—"}
           <span className="text-xs text-muted ml-1">/100</span>
-        </span>
+        </button>
       </div>
       <div className="h-2 w-full bg-background-deep border border-border-bronze/40 overflow-hidden">
         <div
@@ -1109,6 +1139,78 @@ function ScoreBar(props: { score: number | null }) {
           style={{ width: `${Math.max(0, Math.min(100, score))}%` }}
         />
       </div>
+      {breakdown && (
+        <div
+          role="tooltip"
+          className={cn(
+            "pointer-events-none absolute right-0 top-full mt-2 w-72 z-30",
+            "border border-border-bronze/70 bg-card shadow-lg",
+            "px-3 py-2.5",
+            "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+            "transition-opacity",
+          )}
+        >
+          <div className="text-[9px] uppercase tracking-[0.18em] text-muted mb-2">
+            Score breakdown
+          </div>
+          <table className="w-full text-[11px]">
+            <tbody>
+              {SCORE_COMPONENT_DISPLAY.map((c) => {
+                const v = breakdown[c.key];
+                const pct = v / c.cap;
+                const tone =
+                  pct >= 0.8
+                    ? "text-emerald-300"
+                    : pct >= 0.5
+                      ? "text-foreground"
+                      : "text-amber-300";
+                return (
+                  <tr key={c.key} className="border-b border-border-bronze/20 last:border-0">
+                    <td className="py-1 pr-2 text-muted">{c.label}</td>
+                    <td className={cn("py-1 text-right font-mono", tone)}>
+                      {v.toFixed(1)}
+                      <span className="text-muted">/{c.cap}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {breakdown.spendingModifier !== 0 && (
+                <tr className="border-b border-border-bronze/20">
+                  <td className="py-1 pr-2 text-muted">Spending mod</td>
+                  <td
+                    className={cn(
+                      "py-1 text-right font-mono",
+                      breakdown.spendingModifier > 0
+                        ? "text-emerald-300"
+                        : "text-amber-300",
+                    )}
+                  >
+                    {breakdown.spendingModifier > 0 ? "+" : ""}
+                    {breakdown.spendingModifier}
+                  </td>
+                </tr>
+              )}
+              {breakdown.sanityPenalty !== 0 && (
+                <tr className="border-b border-border-bronze/20">
+                  <td className="py-1 pr-2 text-muted">Sanity penalty</td>
+                  <td className="py-1 text-right font-mono text-red-300">
+                    {breakdown.sanityPenalty}
+                  </td>
+                </tr>
+              )}
+              <tr>
+                <td className="pt-2 pr-2 font-medium uppercase tracking-[0.12em] text-[9px] text-muted">
+                  Total
+                </td>
+                <td className="pt-2 text-right font-mono text-base text-foreground">
+                  {props.score != null ? props.score.toFixed(1) : "—"}
+                  <span className="text-muted text-[10px]">/100</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

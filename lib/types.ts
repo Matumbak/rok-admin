@@ -222,6 +222,21 @@ export type MigrationApplicationDetail = MigrationApplicationListItem & {
   /// reported `previousKvkDkp` to surface fudged numbers. Null when no
   /// prevKvk* data was supplied.
   prevKvkDkpComputed: number | null;
+  /// Per-component contribution to overallScore (recomputed on every
+  /// admin GET). Used by the score-bar popover to explain why the
+  /// applicant got the score they got.
+  scoreBreakdown: {
+    accountAge: number;
+    vip: number;
+    power: number;
+    killPoints: number;
+    deaths: number;
+    valor: number;
+    t5Kills: number;
+    prevKvkDkp: number;
+    spendingModifier: number;
+    sanityPenalty: number;
+  };
   activityHours: string | null;
   timezone: string | null;
   reason: string | null;
