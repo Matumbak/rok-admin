@@ -90,6 +90,9 @@ export type SpendingTier =
   | "whale"
   | "kraken";
 
+/** Stage-aware scoring profile — drives pivot calibration. */
+export type ScoringProfile = "lost-kingdom" | "season-of-conquest";
+
 /**
  * Per-application percentile bands across the active cohort
  * (status in pending+approved). 0..1; null means the underlying
@@ -141,6 +144,7 @@ export type MigrationApplicationListItem = {
   /// as the Scout. False = applicant uploaded a different commander.
   scoutVerified: boolean;
   spendingTier: SpendingTier | null;
+  scoringProfile: ScoringProfile | null;
   overallScore: number | null;
   /** Auto-derived tag slugs ("veteran", "f2p-hero", etc.). */
   tags: string[] | null;
@@ -213,6 +217,11 @@ export type MigrationApplicationDetail = MigrationApplicationListItem & {
   /// "manual" → applicant typed a value but no autofill snapshot was
   /// recorded; null → within tolerance, no badge needed.
   driftFlags: Record<string, "auto-edited" | "manual" | null>;
+  /// Server-computed last-KvK DKP using the active profile's weights
+  /// (LK 10/20/50 vs SoC 10/30/80). Compare against the applicant-
+  /// reported `previousKvkDkp` to surface fudged numbers. Null when no
+  /// prevKvk* data was supplied.
+  prevKvkDkpComputed: number | null;
   activityHours: string | null;
   timezone: string | null;
   reason: string | null;

@@ -22,6 +22,7 @@ import {
   ApplicationStatus,
   AppScreenshot,
   MigrationApplicationDetail,
+  ScoringProfile,
   SpendingTier,
 } from "@/lib/types";
 // AppCommander removed — commanders are now eyeballed from screenshots only.
@@ -40,6 +41,23 @@ const SPENDING_TIER_OPTIONS: { value: SpendingTier; label: string }[] = [
   { value: "high", label: "High" },
   { value: "whale", label: "Whale" },
   { value: "kraken", label: "Kraken" },
+];
+
+const SCORING_PROFILE_OPTIONS: {
+  value: ScoringProfile;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    value: "lost-kingdom",
+    label: "Lost Kingdom",
+    hint: "KvK 1–4, mostly T4, low KP/deaths",
+  },
+  {
+    value: "season-of-conquest",
+    label: "Season of Conquest",
+    hint: "Post-LK, T5-heavy, ~10× higher KP",
+  },
 ];
 
 const STATUS_STYLES: Record<ApplicationStatus, string> = {
@@ -296,6 +314,51 @@ export default function ApplicationDetailPage() {
             </h3>
             <ScoreBar score={app.overallScore} />
             <div className="mt-5">
+              <Label>Scoring profile</Label>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {SCORING_PROFILE_OPTIONS.map((opt) => {
+                  const active = (app.scoringProfile ?? "lost-kingdom") === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      title={opt.hint}
+                      onClick={async () => {
+                        if (active || saving) return;
+                        setSaving(true);
+                        try {
+                          const updated = await applicationsApi.patch(id, {
+                            scoringProfile: opt.value,
+                          });
+                          setApp(updated);
+                          flash(`Profile → ${opt.label}, score recomputed`, "success");
+                        } catch (e) {
+                          flash(
+                            (e as Error).message ?? "save_failed",
+                            "error",
+                          );
+                        } finally {
+                          setSaving(false);
+                        }
+                      }}
+                      className={cn(
+                        "px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] border transition",
+                        active
+                          ? "border-accent text-accent-bright bg-accent/15"
+                          : "border-border-bronze/60 text-muted hover:border-accent/60",
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-[10px] text-muted">
+                Calibrates the formula's pivots. Default LK matches
+                kingdom 4028's current KvK1 stage.
+              </p>
+            </div>
+            <div className="mt-5">
               <Label>Spending tier</Label>
               <div className="mt-1">
                 {app.spendingTier ? (
@@ -426,8 +489,17 @@ export default function ApplicationDetailPage() {
               </p>
               <Grid>
                 <Stat
-                  label="DKP score"
+                  label="DKP score (reported)"
                   value={displayStat(app.previousKvkDkp, app.previousKvkDkpN)}
+                  highlight
+                />
+                <Stat
+                  label="DKP (server-computed)"
+                  value={
+                    app.prevKvkDkpComputed != null
+                      ? formatRokNumber(app.prevKvkDkpComputed)
+                      : "—"
+                  }
                   highlight
                 />
                 <Stat
@@ -450,6 +522,11 @@ export default function ApplicationDetailPage() {
                   )}
                 />
               </Grid>
+              <DkpDriftHint
+                reported={app.previousKvkDkpN}
+                computed={app.prevKvkDkpComputed}
+                profile={app.scoringProfile ?? "lost-kingdom"}
+              />
             </Card>
           )}
 
@@ -915,6 +992,44 @@ function DriftBadge(props: {
         )}
       </span>
     </span>
+  );
+}
+
+/**
+ * Compares the applicant's reported DKP score against the server-side
+ * recompute (T4×10 + T5×W + deaths×W using the active profile's
+ * weights — Variant A 10/30/80 for SoC, Variant B 10/20/50 for LK).
+ * Surfaces an amber hint when the two diverge significantly, so admin
+ * can ask whether the applicant fudged the number or if the upstream
+ * KvK had non-standard weights.
+ */
+function DkpDriftHint(props: {
+  reported: number | null;
+  computed: number | null;
+  profile: ScoringProfile;
+}) {
+  if (props.reported == null || props.computed == null) return null;
+  if (props.computed === 0) return null;
+  const drift = Math.abs(props.reported - props.computed) / props.computed;
+  if (drift <= 0.1) return null;
+  const profileLabel =
+    props.profile === "season-of-conquest"
+      ? "SoC weights 10/30/80"
+      : "LK weights 10/20/50";
+  const direction =
+    props.reported > props.computed ? "higher" : "lower";
+  return (
+    <div className="mt-3 flex items-start gap-2 border border-amber-500/40 bg-amber-500/5 p-2.5 text-[11px] text-amber-200">
+      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+      <div>
+        Reported DKP is{" "}
+        <span className="font-mono">
+          {Math.round(drift * 100)}% {direction}
+        </span>{" "}
+        than the server recompute ({profileLabel}). Could mean upstream
+        alliance used different weights — or applicant fudged.
+      </div>
+    </div>
   );
 }
 

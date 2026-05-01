@@ -110,6 +110,42 @@ const TAG_STYLES: Record<string, TagStyle> = {
     label: "Pay-to-loose",
     className: "border-red-500/60 text-red-300 bg-red-500/10",
   },
+  "weak-whale": {
+    label: "Weak whale",
+    className: "border-red-500/60 text-red-300 bg-red-500/10",
+  },
+  "lk-veteran": {
+    label: "LK veteran",
+    className: "border-emerald-500/60 text-emerald-300 bg-emerald-500/10",
+  },
+  "t5-ready": {
+    label: "T5 ready",
+    className: "border-emerald-500/60 text-emerald-300 bg-emerald-500/10",
+  },
+  "pre-t5": {
+    label: "Pre-T5",
+    className: "border-amber-500/60 text-amber-300 bg-amber-500/10",
+  },
+  "t1-trader": {
+    label: "T1 trader",
+    className: "border-red-500/60 text-red-300 bg-red-500/15",
+  },
+  "mostly-low-tier": {
+    label: "Low-tier heavy",
+    className: "border-amber-500/60 text-amber-300 bg-amber-500/10",
+  },
+  "farm-only": {
+    label: "Farm-only",
+    className: "border-red-500/60 text-red-300 bg-red-500/10",
+  },
+  bunkerer: {
+    label: "Bunkerer",
+    className: "border-amber-500/60 text-amber-300 bg-amber-500/10",
+  },
+  dormant: {
+    label: "Dormant",
+    className: "border-amber-500/60 text-amber-300 bg-amber-500/10",
+  },
   f2p: {
     label: "F2P",
     className: "border-border-bronze/60 text-muted bg-background-deep/40",
