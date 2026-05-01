@@ -384,6 +384,53 @@ export default function ApplicationDetailPage() {
             </Grid>
           </Card>
 
+          {(app.previousKvkDkp ||
+            app.prevKvkT4Kills ||
+            app.prevKvkT5Kills ||
+            app.prevKvkDeaths ||
+            app.prevKvkKillPoints ||
+            app.prevKvkPower) && (
+            <Card>
+              <h3 className="font-semibold uppercase tracking-[0.18em] text-sm mb-1">
+                Last KvK
+              </h3>
+              <p className="text-xs text-muted mb-4">
+                From the applicant&apos;s DKP-scan upload. Independent of
+                the lifetime account stats above.
+              </p>
+              <Grid>
+                <Stat
+                  label="DKP score"
+                  value={displayStat(app.previousKvkDkp, app.previousKvkDkpN)}
+                  highlight
+                />
+                <Stat
+                  label="T4 kills"
+                  value={displayStat(app.prevKvkT4Kills, app.prevKvkT4KillsN)}
+                />
+                <Stat
+                  label="T5 kills"
+                  value={displayStat(app.prevKvkT5Kills, app.prevKvkT5KillsN)}
+                />
+                <Stat
+                  label="Deaths"
+                  value={displayStat(app.prevKvkDeaths, app.prevKvkDeathsN)}
+                />
+                <Stat
+                  label="Kill points"
+                  value={displayStat(
+                    app.prevKvkKillPoints,
+                    app.prevKvkKillPointsN,
+                  )}
+                />
+                <Stat
+                  label="Power (snapshot)"
+                  value={displayStat(app.prevKvkPower, app.prevKvkPowerN)}
+                />
+              </Grid>
+            </Card>
+          )}
+
           <Card>
             <h3 className="font-semibold uppercase tracking-[0.18em] text-sm mb-4">
               Stats
