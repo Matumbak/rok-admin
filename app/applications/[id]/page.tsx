@@ -396,12 +396,7 @@ export default function ApplicationDetailPage() {
             <Grid>
               <Stat
                 label="Max valor (lifetime)"
-                value={app.maxValorPoints ?? "—"}
-                hint={
-                  app.maxValorPointsN != null
-                    ? formatRokNumber(app.maxValorPointsN)
-                    : undefined
-                }
+                value={displayStat(app.maxValorPoints, app.maxValorPointsN)}
                 highlight
                 pct={app.percentiles?.maxValorPoints}
               />
@@ -415,67 +410,49 @@ export default function ApplicationDetailPage() {
             <Grid>
               <Stat
                 label="Power"
-                value={app.power}
-                hint={app.powerN != null ? formatRokNumber(app.powerN) : undefined}
+                value={displayStat(app.power, app.powerN)}
                 highlight
                 pct={app.percentiles?.power}
               />
               <Stat
                 label="Kill points"
-                value={app.killPoints}
-                hint={
-                  app.killPointsN != null
-                    ? formatRokNumber(app.killPointsN)
-                    : undefined
-                }
+                value={displayStat(app.killPoints, app.killPointsN)}
                 highlight
                 pct={app.percentiles?.killPoints}
               />
               <Stat
                 label="T1 kills"
-                value={app.t1Kills ?? "—"}
-                hint={
-                  app.t1KillsN != null ? formatRokNumber(app.t1KillsN) : undefined
-                }
+                value={displayStat(app.t1Kills, app.t1KillsN)}
               />
               <Stat
                 label="T2 kills"
-                value={app.t2Kills ?? "—"}
-                hint={
-                  app.t2KillsN != null ? formatRokNumber(app.t2KillsN) : undefined
-                }
+                value={displayStat(app.t2Kills, app.t2KillsN)}
               />
               <Stat
                 label="T3 kills"
-                value={app.t3Kills ?? "—"}
-                hint={
-                  app.t3KillsN != null ? formatRokNumber(app.t3KillsN) : undefined
-                }
+                value={displayStat(app.t3Kills, app.t3KillsN)}
               />
               <Stat
                 label="T4 kills"
-                value={app.t4Kills ?? "—"}
-                hint={
-                  app.t4KillsN != null ? formatRokNumber(app.t4KillsN) : undefined
-                }
+                value={displayStat(app.t4Kills, app.t4KillsN)}
               />
               <Stat
                 label="T5 kills"
-                value={app.t5Kills ?? "—"}
-                hint={
-                  app.t5KillsN != null ? formatRokNumber(app.t5KillsN) : undefined
-                }
+                value={displayStat(app.t5Kills, app.t5KillsN)}
               />
               <Stat
                 label="Deaths"
-                value={app.deaths ?? "—"}
-                hint={
-                  app.deathsN != null ? formatRokNumber(app.deathsN) : undefined
-                }
+                value={displayStat(app.deaths, app.deathsN)}
                 pct={app.percentiles?.deaths}
               />
-              <Stat label="Resources gathered" value={app.resourcesGathered ?? "—"} />
-              <Stat label="Previous KvK DKP" value={app.previousKvkDkp ?? "—"} />
+              <Stat
+                label="Resources gathered"
+                value={displayStat(app.resourcesGathered, app.resourcesGatheredN)}
+              />
+              <Stat
+                label="Previous KvK DKP"
+                value={displayStat(app.previousKvkDkp, app.previousKvkDkpN)}
+              />
             </Grid>
           </Card>
 
@@ -484,26 +461,10 @@ export default function ApplicationDetailPage() {
               Resources
             </h3>
             <Grid>
-              <Stat
-                label="Food"
-                value={app.food ?? "—"}
-                hint={app.foodN != null ? formatRokNumber(app.foodN) : undefined}
-              />
-              <Stat
-                label="Wood"
-                value={app.wood ?? "—"}
-                hint={app.woodN != null ? formatRokNumber(app.woodN) : undefined}
-              />
-              <Stat
-                label="Stone"
-                value={app.stone ?? "—"}
-                hint={app.stoneN != null ? formatRokNumber(app.stoneN) : undefined}
-              />
-              <Stat
-                label="Gold"
-                value={app.gold ?? "—"}
-                hint={app.goldN != null ? formatRokNumber(app.goldN) : undefined}
-              />
+              <Stat label="Food" value={displayStat(app.food, app.foodN)} />
+              <Stat label="Wood" value={displayStat(app.wood, app.woodN)} />
+              <Stat label="Stone" value={displayStat(app.stone, app.stoneN)} />
+              <Stat label="Gold" value={displayStat(app.gold, app.goldN)} />
             </Grid>
           </Card>
 
@@ -712,15 +673,12 @@ function Stat({
   value,
   mono,
   highlight,
-  hint,
   pct,
 }: {
   label: string;
   value: string;
   mono?: boolean;
   highlight?: boolean;
-  /** Secondary line — used for the normalized "84.2M" display under the raw input. */
-  hint?: string;
   /** Cohort percentile 0..1 — renders a colored band pill if in top 50%. */
   pct?: number | null;
 }) {
@@ -749,11 +707,17 @@ function Stat({
           </span>
         )}
       </div>
-      {hint && hint !== value && (
-        <p className="text-[11px] text-muted font-mono">{hint}</p>
-      )}
     </div>
   );
+}
+
+/** Pick the most-readable display: formatted from N if available, else
+ *  the raw string the applicant typed. Falls back to "—" when both are
+ *  empty. */
+function displayStat(raw: string | null | undefined, n: number | null | undefined): string {
+  if (n != null) return formatRokNumber(n);
+  if (raw && raw.trim()) return raw;
+  return "—";
 }
 
 /**
