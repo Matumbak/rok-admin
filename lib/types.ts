@@ -222,6 +222,14 @@ export type MigrationApplicationDetail = MigrationApplicationListItem & {
   /// reported `previousKvkDkp` to surface fudged numbers. Null when no
   /// prevKvk* data was supplied.
   prevKvkDkpComputed: number | null;
+  /// Profile the score was actually computed on — explicit override
+  /// from `scoringProfile` if set, else age-based inference. Always
+  /// present (server fills it).
+  effectiveProfile: ScoringProfile;
+  /// True iff `effectiveProfile` came from auto-inference (no manual
+  /// override saved). When this is true AND profile is SoC, the
+  /// admin UI locks the toggle — no point switching back to LK.
+  profileAutoInferred: boolean;
   /// Per-component contribution to overallScore (recomputed on every
   /// admin GET). Used by the score-bar popover to explain why the
   /// applicant got the score they got.

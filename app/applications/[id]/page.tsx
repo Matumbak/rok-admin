@@ -317,14 +317,29 @@ export default function ApplicationDetailPage() {
               <Label>Scoring profile</Label>
               <div className="mt-1 flex flex-wrap gap-1.5">
                 {SCORING_PROFILE_OPTIONS.map((opt) => {
-                  const active = (app.scoringProfile ?? "lost-kingdom") === opt.value;
+                  const active = app.effectiveProfile === opt.value;
+                  // Lock when SoC was auto-inferred from a ≥12mo account.
+                  // The inference is data-driven; switching to LK would
+                  // misrepresent the applicant's stage. Once admin makes
+                  // an explicit choice (any choice) the lock lifts —
+                  // they can change their mind.
+                  const lockedByInference =
+                    app.profileAutoInferred &&
+                    app.effectiveProfile === "season-of-conquest";
+                  const disabled =
+                    active || saving || (lockedByInference && !active);
                   return (
                     <button
                       key={opt.value}
                       type="button"
-                      title={opt.hint}
+                      title={
+                        lockedByInference && !active
+                          ? "Locked — applicant is ≥12mo old, SoC profile auto-inferred. To override, edit accountBornAt."
+                          : opt.hint
+                      }
+                      disabled={disabled}
                       onClick={async () => {
-                        if (active || saving) return;
+                        if (active || saving || lockedByInference) return;
                         setSaving(true);
                         try {
                           const updated = await applicationsApi.patch(id, {
@@ -345,7 +360,9 @@ export default function ApplicationDetailPage() {
                         "px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] border transition",
                         active
                           ? "border-accent text-accent-bright bg-accent/15"
-                          : "border-border-bronze/60 text-muted hover:border-accent/60",
+                          : lockedByInference
+                            ? "border-border-bronze/30 text-muted/40 cursor-not-allowed"
+                            : "border-border-bronze/60 text-muted hover:border-accent/60",
                       )}
                     >
                       {opt.label}
@@ -354,8 +371,9 @@ export default function ApplicationDetailPage() {
                 })}
               </div>
               <p className="mt-1 text-[10px] text-muted">
-                Calibrates the formula's pivots. Default LK matches
-                kingdom 4028's current KvK1 stage.
+                {app.profileAutoInferred
+                  ? `Auto-inferred from account age (${app.effectiveProfile === "season-of-conquest" ? "≥12mo → SoC" : "<12mo → LK"}). ${app.effectiveProfile === "season-of-conquest" ? "Locked." : "Click LK or SoC to override if needed."}`
+                  : "Manual override active. Click the other pill to switch."}
               </p>
             </div>
             <div className="mt-5">
