@@ -11,16 +11,34 @@ import {
   X as XIcon,
   Archive,
   ExternalLink,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldQuestion,
 } from "lucide-react";
 import { applicationsApi } from "@/lib/api";
 import {
   ApplicationStatus,
   AppScreenshot,
   MigrationApplicationDetail,
+  SpendingTier,
 } from "@/lib/types";
 // AppCommander removed — commanders are now eyeballed from screenshots only.
 import { Button, Card, Input, Label, PageHeader, Textarea, Toast } from "@/components/ui";
-import { cn, formatRokNumber } from "@/lib/utils";
+import {
+  cn,
+  formatRokNumber,
+  percentileBadge,
+  tagStyle,
+} from "@/lib/utils";
+
+const SPENDING_TIER_OPTIONS: { value: SpendingTier; label: string }[] = [
+  { value: "f2p", label: "F2P" },
+  { value: "low", label: "Low" },
+  { value: "mid", label: "Mid" },
+  { value: "high", label: "High" },
+  { value: "whale", label: "Whale" },
+  { value: "kraken", label: "Kraken" },
+];
 
 const STATUS_STYLES: Record<ApplicationStatus, string> = {
   pending: "border-amber-500/60 text-amber-300 bg-amber-500/10",
@@ -43,6 +61,7 @@ export default function ApplicationDetailPage() {
     variant: "info" | "success" | "error";
   } | null>(null);
   const [adminNotes, setAdminNotes] = React.useState("");
+  const [manualTagDraft, setManualTagDraft] = React.useState("");
   const [lightbox, setLightbox] = React.useState<string | null>(null);
 
   const flash = React.useCallback(
@@ -231,6 +250,147 @@ export default function ApplicationDetailPage() {
 
           <Card>
             <h3 className="font-semibold uppercase tracking-[0.18em] text-sm mb-4">
+              Account verification
+            </h3>
+            <ScoutVerificationBlock
+              scoutVerified={app.scoutVerified}
+              accountBornAt={app.accountBornAt}
+              hasVerificationScreens={
+                (app.screenshots ?? []).some(
+                  (s) => s.category === "verification",
+                )
+              }
+            />
+          </Card>
+
+          <Card>
+            <h3 className="font-semibold uppercase tracking-[0.18em] text-sm mb-4">
+              Profile assessment
+            </h3>
+            <ScoreBar score={app.overallScore} />
+            <div className="mt-5">
+              <Label>Spending tier</Label>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {SPENDING_TIER_OPTIONS.map((opt) => {
+                  const active = app.spendingTier === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={async () => {
+                        if (active || saving) return;
+                        setSaving(true);
+                        try {
+                          const updated = await applicationsApi.patch(id, {
+                            spendingTier: opt.value,
+                          });
+                          setApp(updated);
+                          flash(`Spending tier → ${opt.label}`, "success");
+                        } catch (e) {
+                          flash(
+                            (e as Error).message ?? "save_failed",
+                            "error",
+                          );
+                        } finally {
+                          setSaving(false);
+                        }
+                      }}
+                      className={cn(
+                        "px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] border transition",
+                        active
+                          ? "border-accent text-accent-bright bg-accent/15"
+                          : "border-border-bronze/60 text-muted hover:border-accent/60",
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="mt-5">
+              <Label>Auto tags</Label>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {app.tags && app.tags.length > 0 ? (
+                  app.tags.map((slug) => <TagPill key={slug} slug={slug} />)
+                ) : (
+                  <span className="text-xs text-muted italic">
+                    No auto tags assigned.
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="mt-5">
+              <Label>Manual tags</Label>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {(app.manualTags ?? []).map((slug) => (
+                  <TagPill
+                    key={slug}
+                    slug={slug}
+                    isManual
+                    onRemove={async () => {
+                      if (saving) return;
+                      setSaving(true);
+                      try {
+                        const next = (app.manualTags ?? []).filter(
+                          (t) => t !== slug,
+                        );
+                        const updated = await applicationsApi.patch(id, {
+                          manualTags: next,
+                        });
+                        setApp(updated);
+                      } catch (e) {
+                        flash((e as Error).message ?? "save_failed", "error");
+                      } finally {
+                        setSaving(false);
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+              <form
+                className="mt-2 flex gap-2"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const tag = manualTagDraft.trim();
+                  if (!tag || saving) return;
+                  setSaving(true);
+                  try {
+                    const next = [
+                      ...new Set([...(app.manualTags ?? []), tag]),
+                    ].slice(0, 20);
+                    const updated = await applicationsApi.patch(id, {
+                      manualTags: next,
+                    });
+                    setApp(updated);
+                    setManualTagDraft("");
+                  } catch (err) {
+                    flash((err as Error).message ?? "save_failed", "error");
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+              >
+                <Input
+                  value={manualTagDraft}
+                  onChange={(e) => setManualTagDraft(e.target.value)}
+                  placeholder="Add custom tag…"
+                  className="flex-1"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  variant="outline"
+                  disabled={!manualTagDraft.trim() || saving}
+                >
+                  Add
+                </Button>
+              </form>
+            </div>
+          </Card>
+
+          <Card>
+            <h3 className="font-semibold uppercase tracking-[0.18em] text-sm mb-4">
               KvK record
             </h3>
             <Grid>
@@ -243,6 +403,7 @@ export default function ApplicationDetailPage() {
                     : undefined
                 }
                 highlight
+                pct={app.percentiles?.maxValorPoints}
               />
             </Grid>
           </Card>
@@ -257,6 +418,7 @@ export default function ApplicationDetailPage() {
                 value={app.power}
                 hint={app.powerN != null ? formatRokNumber(app.powerN) : undefined}
                 highlight
+                pct={app.percentiles?.power}
               />
               <Stat
                 label="Kill points"
@@ -267,6 +429,7 @@ export default function ApplicationDetailPage() {
                     : undefined
                 }
                 highlight
+                pct={app.percentiles?.killPoints}
               />
               <Stat
                 label="T1 kills"
@@ -309,6 +472,7 @@ export default function ApplicationDetailPage() {
                 hint={
                   app.deathsN != null ? formatRokNumber(app.deathsN) : undefined
                 }
+                pct={app.percentiles?.deaths}
               />
               <Stat label="Resources gathered" value={app.resourcesGathered ?? "—"} />
               <Stat label="Previous KvK DKP" value={app.previousKvkDkp ?? "—"} />
@@ -462,7 +626,16 @@ export default function ApplicationDetailPage() {
                 Blobs cleaned. The parsed data above remains queryable.
               </p>
             )}
-            {(["account", "commander", "resource", "dkp", "other"] as const).map(
+            {(
+              [
+                "verification",
+                "account",
+                "commander",
+                "resource",
+                "dkp",
+                "other",
+              ] as const
+            ).map(
               (cat) => {
                 const list = screensByCat[cat] ?? [];
                 if (list.length === 0) return null;
@@ -540,6 +713,7 @@ function Stat({
   mono,
   highlight,
   hint,
+  pct,
 }: {
   label: string;
   value: string;
@@ -547,24 +721,212 @@ function Stat({
   highlight?: boolean;
   /** Secondary line — used for the normalized "84.2M" display under the raw input. */
   hint?: string;
+  /** Cohort percentile 0..1 — renders a colored band pill if in top 50%. */
+  pct?: number | null;
 }) {
+  const badge = percentileBadge(pct);
   return (
     <div>
       <Label>{label}</Label>
-      <p
-        className={cn(
-          "text-sm",
-          highlight && "text-accent-bright font-medium",
-          mono && "font-mono text-xs",
+      <div className="flex items-baseline gap-2">
+        <p
+          className={cn(
+            "text-sm",
+            highlight && "text-accent-bright font-medium",
+            mono && "font-mono text-xs",
+          )}
+        >
+          {value}
+        </p>
+        {badge && (
+          <span
+            className={cn(
+              "inline-flex items-center px-1.5 py-0.5 text-[9px] uppercase tracking-[0.1em] border",
+              badge.className,
+            )}
+          >
+            {badge.label}
+          </span>
         )}
-      >
-        {value}
-      </p>
+      </div>
       {hint && hint !== value && (
         <p className="text-[11px] text-muted font-mono">{hint}</p>
       )}
     </div>
   );
+}
+
+/**
+ * Compact tag pill. Auto and manual tags share the design but manual
+ * gets a subtle outlined-only treatment + a remove × so officers can
+ * un-tag without leaving the page.
+ */
+function TagPill(props: {
+  slug: string;
+  isManual?: boolean;
+  onRemove?: () => void;
+}) {
+  const style = tagStyle(props.slug, props.isManual);
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 px-2 py-0.5 text-[11px] uppercase tracking-[0.1em] border",
+        style.className,
+        props.isManual && "border-dashed",
+      )}
+    >
+      {style.label}
+      {props.onRemove && (
+        <button
+          type="button"
+          onClick={props.onRemove}
+          className="-mr-0.5 ml-0.5 opacity-60 hover:opacity-100"
+          aria-label={`Remove ${style.label}`}
+        >
+          <XIcon className="h-3 w-3" />
+        </button>
+      )}
+    </span>
+  );
+}
+
+function ScoreBar(props: { score: number | null }) {
+  const score = props.score ?? 0;
+  const color =
+    score >= 80
+      ? "bg-yellow-500"
+      : score >= 60
+        ? "bg-emerald-500"
+        : score >= 40
+          ? "bg-sky-500"
+          : score >= 20
+            ? "bg-amber-500"
+            : "bg-red-500";
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-2">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-muted">
+          Overall score
+        </span>
+        <span className="font-mono text-2xl text-foreground">
+          {props.score != null ? props.score.toFixed(1) : "—"}
+          <span className="text-xs text-muted ml-1">/100</span>
+        </span>
+      </div>
+      <div className="h-2 w-full bg-background-deep border border-border-bronze/40 overflow-hidden">
+        <div
+          className={cn("h-full transition-all", color)}
+          style={{ width: `${Math.max(0, Math.min(100, score))}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Verification card body. Three visual states:
+ *  - Scout verified  → green ShieldCheck + birth date + "X yrs Y mos old"
+ *  - Wrong commander → amber ShieldAlert ("uploaded but not Scout — request a re-upload")
+ *  - Nothing uploaded → muted ShieldQuestion ("no proof submitted")
+ *
+ * If `accountBornAt` is null but `scoutVerified` is true, the OCR confirmed
+ * Scout but failed to read a date — show a milder warning so the admin
+ * can ask for a re-upload of the same screen at a higher quality.
+ */
+function ScoutVerificationBlock(props: {
+  scoutVerified: boolean;
+  accountBornAt: string | null;
+  hasVerificationScreens: boolean;
+}) {
+  if (props.scoutVerified) {
+    return (
+      <div className="flex items-start gap-3">
+        <div className="shrink-0 inline-flex h-9 w-9 items-center justify-center border border-emerald-500/60 bg-emerald-500/10 text-emerald-300">
+          <ShieldCheck className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm text-emerald-300 font-medium">
+            Scout commander confirmed
+          </p>
+          {props.accountBornAt ? (
+            <>
+              <p className="text-xs text-muted mt-0.5">
+                Account created{" "}
+                <span className="font-mono text-foreground">
+                  {fmtBirthDate(props.accountBornAt)}
+                </span>{" "}
+                · {fmtAccountAge(props.accountBornAt)}
+              </p>
+            </>
+          ) : (
+            <p className="text-xs text-amber-300 mt-0.5">
+              Recruit date unreadable — ask for a higher-resolution
+              re-upload of the same Scout screen.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+  if (props.hasVerificationScreens) {
+    return (
+      <div className="flex items-start gap-3">
+        <div className="shrink-0 inline-flex h-9 w-9 items-center justify-center border border-amber-500/60 bg-amber-500/10 text-amber-300">
+          <ShieldAlert className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm text-amber-300 font-medium">
+            Wrong commander uploaded
+          </p>
+          <p className="text-xs text-muted mt-0.5">
+            The applicant submitted a verification screenshot, but it was
+            not the starter Scout. Request a re-upload before approving.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-start gap-3">
+      <div className="shrink-0 inline-flex h-9 w-9 items-center justify-center border border-border-bronze/60 bg-background-deep/40 text-muted">
+        <ShieldQuestion className="h-5 w-5" />
+      </div>
+      <div className="flex-1">
+        <p className="text-sm text-muted font-medium">No verification submitted</p>
+        <p className="text-xs text-muted mt-0.5">
+          Account age cannot be confirmed.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Format an ISO timestamp as "2026-02-07" for compact display. */
+function fmtBirthDate(iso: string): string {
+  return new Date(iso).toISOString().slice(0, 10);
+}
+
+/** "3 yrs 2 mos" / "8 mos" / "12 days" depending on magnitude. */
+function fmtAccountAge(iso: string): string {
+  const born = new Date(iso);
+  const now = new Date();
+  let months =
+    (now.getUTCFullYear() - born.getUTCFullYear()) * 12 +
+    (now.getUTCMonth() - born.getUTCMonth());
+  if (now.getUTCDate() < born.getUTCDate()) months -= 1;
+  if (months <= 0) {
+    const days = Math.max(
+      0,
+      Math.floor((now.getTime() - born.getTime()) / 86400_000),
+    );
+    return `${days} day${days === 1 ? "" : "s"} old`;
+  }
+  if (months < 12) return `${months} mo${months === 1 ? "" : "s"} old`;
+  const years = Math.floor(months / 12);
+  const rem = months % 12;
+  return rem === 0
+    ? `${years} yr${years === 1 ? "" : "s"} old`
+    : `${years} yr${years === 1 ? "" : "s"} ${rem} mo${rem === 1 ? "" : "s"} old`;
 }
 
 function groupScreenshots(list: AppScreenshot[]) {

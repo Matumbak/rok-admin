@@ -19,7 +19,7 @@ import {
   MigrationApplicationListItem,
 } from "@/lib/types";
 import { Button, Input, PageHeader, Toast } from "@/components/ui";
-import { cn, formatRokNumber } from "@/lib/utils";
+import { cn, formatRokNumber, tagStyle } from "@/lib/utils";
 
 const STATUSES: ApplicationStatus[] = [
   "pending",
@@ -52,6 +52,8 @@ const SORTABLE = new Set([
   "food",
   "previousKvkDkp",
   "speedupsMinutes",
+  "overallScore",
+  "accountBornAt",
 ]);
 
 export default function ApplicationsPage() {
@@ -75,6 +77,7 @@ export default function ApplicationsPage() {
   const [kingdom, setKingdom] = React.useState("");
   const [since, setSince] = React.useState("");
   const [scrollsOnly, setScrollsOnly] = React.useState(false);
+  const [scoreMin, setScoreMin] = React.useState("");
   const [advancedOpen, setAdvancedOpen] = React.useState(false);
 
   /**
@@ -118,6 +121,7 @@ export default function ApplicationsPage() {
     kingdom,
     since,
     scrollsOnly,
+    scoreMin,
   ]);
 
   const load = React.useCallback(async () => {
@@ -140,6 +144,9 @@ export default function ApplicationsPage() {
         kingdom: kingdom.trim() || undefined,
         since: since || undefined,
         hasScrolls: scrollsOnly || undefined,
+        scoreMin: scoreMin
+          ? Number.parseFloat(scoreMin) || undefined
+          : undefined,
       };
       const res = await applicationsApi.list(query);
       setData(res);
@@ -161,6 +168,7 @@ export default function ApplicationsPage() {
     kingdom,
     since,
     scrollsOnly,
+    scoreMin,
   ]);
 
   React.useEffect(() => {
@@ -224,7 +232,8 @@ export default function ApplicationsPage() {
           marchesMin ||
           kingdom ||
           since ||
-          scrollsOnly) && (
+          scrollsOnly ||
+          scoreMin) && (
           <button
             type="button"
             onClick={() => {
@@ -237,6 +246,7 @@ export default function ApplicationsPage() {
               setKingdom("");
               setSince("");
               setScrollsOnly(false);
+              setScoreMin("");
             }}
             className="text-xs text-muted hover:text-foreground inline-flex items-center gap-1"
           >
@@ -269,6 +279,12 @@ export default function ApplicationsPage() {
           onChange={(e) => setKpMin(e.target.value)}
           placeholder="min KP (100M)"
           className="w-36 sm:w-44"
+        />
+        <Input
+          value={scoreMin}
+          onChange={(e) => setScoreMin(e.target.value)}
+          placeholder="min score (60)"
+          className="w-32 sm:w-36"
         />
         <label className="inline-flex items-center gap-2 text-muted cursor-pointer h-10 px-3 border border-border-bronze">
           <input
@@ -374,6 +390,7 @@ export default function ApplicationsPage() {
             <thead>
               <tr className="bg-background-deep/60 border-b border-border-bronze/70 text-muted">
                 <Th label="Status" col="status" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                <Th label="Score" col="overallScore" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                 <Th label="Nickname" col="nickname" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                 <Th label="Gov ID" col="governorId" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                 <Th label="Kingdom" col="currentKingdom" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
@@ -392,7 +409,7 @@ export default function ApplicationsPage() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={14} className="p-12 text-center text-muted">
+                  <td colSpan={15} className="p-12 text-center text-muted">
                     <Loader2 className="inline h-5 w-5 animate-spin mr-2" />
                     Loading…
                   </td>
@@ -400,14 +417,14 @@ export default function ApplicationsPage() {
               )}
               {!loading && error && (
                 <tr>
-                  <td colSpan={14} className="p-12 text-center text-danger">
+                  <td colSpan={15} className="p-12 text-center text-danger">
                     {error}
                   </td>
                 </tr>
               )}
               {!loading && !error && data?.items.length === 0 && (
                 <tr>
-                  <td colSpan={14} className="p-12 text-center text-muted">
+                  <td colSpan={15} className="p-12 text-center text-muted">
                     No applications match these filters.
                   </td>
                 </tr>
@@ -431,12 +448,20 @@ export default function ApplicationsPage() {
                       </Link>
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
+                      <ScoreChip score={row.overallScore} />
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
                       <Link
                         href={`/applications/${row.id}`}
                         className="text-foreground hover:text-accent transition-colors font-medium"
                       >
                         {row.nickname}
                       </Link>
+                      <TagRow
+                        tags={row.tags}
+                        manualTags={row.manualTags}
+                        max={3}
+                      />
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap font-mono text-xs text-muted">
                       {row.governorId}
@@ -567,15 +592,19 @@ function ApplicationCard({
             {row.currentAlliance ? ` · [${row.currentAlliance}]` : ""}
           </div>
         </div>
-        <span
-          className={cn(
-            "shrink-0 inline-flex px-2 py-0.5 text-[10px] uppercase tracking-[0.15em] border",
-            STATUS_STYLES[row.status],
-          )}
-        >
-          {row.status}
-        </span>
+        <div className="shrink-0 flex flex-col items-end gap-1">
+          <span
+            className={cn(
+              "inline-flex px-2 py-0.5 text-[10px] uppercase tracking-[0.15em] border",
+              STATUS_STYLES[row.status],
+            )}
+          >
+            {row.status}
+          </span>
+          <ScoreChip score={row.overallScore} />
+        </div>
       </div>
+      <TagRow tags={row.tags} manualTags={row.manualTags} max={4} className="mt-2" />
 
       <div className="mt-3 flex items-baseline justify-between gap-2 border-t border-border-bronze/40 pt-3">
         <span className="text-[10px] uppercase tracking-[0.18em] text-muted">
@@ -628,6 +657,86 @@ function ApplicationCard({
         <span>{new Date(row.createdAt).toLocaleString()}</span>
       </div>
     </Link>
+  );
+}
+
+/**
+ * Compact score chip for list views — colour banded by score range so
+ * the eye picks out strong applicants at a glance. "—" when no score
+ * is computed yet (legacy rows or freshly-imported data).
+ */
+function ScoreChip({ score }: { score: number | null }) {
+  if (score == null)
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] uppercase tracking-[0.1em] border border-border-bronze/60 text-muted bg-background-deep/40">
+        —
+      </span>
+    );
+  const style =
+    score >= 80
+      ? "border-yellow-500/60 text-yellow-300 bg-yellow-500/15"
+      : score >= 60
+        ? "border-emerald-500/60 text-emerald-300 bg-emerald-500/15"
+        : score >= 40
+          ? "border-sky-500/60 text-sky-300 bg-sky-500/15"
+          : score >= 20
+            ? "border-amber-500/60 text-amber-300 bg-amber-500/15"
+            : "border-red-500/60 text-red-300 bg-red-500/15";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono border",
+        style,
+      )}
+      title={`Overall score ${score.toFixed(1)} / 100`}
+    >
+      {score.toFixed(0)}
+    </span>
+  );
+}
+
+/**
+ * Inline strip of up to `max` tag pills — auto + manual mixed, manual
+ * rendered with a dashed outline so officers can distinguish their
+ * curated tags from the engine's at a glance.
+ */
+function TagRow(props: {
+  tags: string[] | null;
+  manualTags: string[] | null;
+  max: number;
+  className?: string;
+}) {
+  const auto = (props.tags ?? []).map((t) => ({ slug: t, manual: false }));
+  const manual = (props.manualTags ?? []).map((t) => ({
+    slug: t,
+    manual: true,
+  }));
+  const all = [...manual, ...auto].slice(0, props.max);
+  if (all.length === 0) return null;
+  const overflow = (auto.length + manual.length) - all.length;
+  return (
+    <div className={cn("flex flex-wrap gap-1 mt-1", props.className)}>
+      {all.map(({ slug, manual: isManual }) => {
+        const style = tagStyle(slug, isManual);
+        return (
+          <span
+            key={`${isManual ? "m:" : "a:"}${slug}`}
+            className={cn(
+              "inline-flex items-center px-1.5 py-0 text-[10px] uppercase tracking-[0.1em] border",
+              style.className,
+              isManual && "border-dashed",
+            )}
+          >
+            {style.label}
+          </span>
+        );
+      })}
+      {overflow > 0 && (
+        <span className="inline-flex items-center px-1.5 py-0 text-[10px] uppercase tracking-[0.1em] border border-border-bronze/60 text-muted bg-background-deep/40">
+          +{overflow}
+        </span>
+      )}
+    </div>
   );
 }
 

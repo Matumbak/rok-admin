@@ -232,6 +232,10 @@ export const applicationsApi = {
     if (query.since) qs.set("since", query.since);
     if (query.until) qs.set("until", query.until);
     if (query.hasScrolls) qs.set("hasScrolls", "true");
+    if (query.scoreMin != null) qs.set("scoreMin", String(query.scoreMin));
+    for (const t of query.tags ?? []) qs.append("tag", t);
+    if (query.spendingTiers && query.spendingTiers.length > 0)
+      qs.set("spendingTier", query.spendingTiers.join(","));
     const qsStr = qs.toString();
     return request<ApplicationsListResponse>(
       `/api/migration-applications/admin${qsStr ? `?${qsStr}` : ""}`,

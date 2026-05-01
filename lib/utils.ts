@@ -60,3 +60,121 @@ export function formatRokNumber(n: number | null | undefined): string {
     .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   return sign + grouped;
 }
+
+/**
+ * Tag visual style table. Keep slugs in sync with rok-api/lib/scoring.ts —
+ * if a slug isn't listed here it falls through to the default neutral
+ * pill, which is fine but means we lose the colour signal.
+ */
+export type TagStyle = {
+  label: string;
+  className: string;
+  /** True if this is officer-curated (rendered with extra outline). */
+  manual?: boolean;
+};
+
+const TAG_STYLES: Record<string, TagStyle> = {
+  veteran: {
+    label: "Veteran",
+    className: "border-emerald-500/60 text-emerald-300 bg-emerald-500/10",
+  },
+  "young-account": {
+    label: "Young account",
+    className: "border-sky-500/60 text-sky-300 bg-sky-500/10",
+  },
+  "very-young-account": {
+    label: "Very young",
+    className: "border-amber-500/60 text-amber-300 bg-amber-500/10",
+  },
+  "active-fighter": {
+    label: "Active fighter",
+    className: "border-emerald-500/60 text-emerald-300 bg-emerald-500/10",
+  },
+  turtle: {
+    label: "Turtle",
+    className: "border-amber-500/60 text-amber-300 bg-amber-500/10",
+  },
+  "kvk-veteran": {
+    label: "KvK veteran",
+    className: "border-emerald-500/60 text-emerald-300 bg-emerald-500/10",
+  },
+  "no-kvk": {
+    label: "No KvK",
+    className: "border-border-bronze/60 text-muted bg-background-deep/40",
+  },
+  "f2p-hero": {
+    label: "F2P hero",
+    className: "border-yellow-500/60 text-yellow-300 bg-yellow-500/10",
+  },
+  "pay-to-loose": {
+    label: "Pay-to-loose",
+    className: "border-red-500/60 text-red-300 bg-red-500/10",
+  },
+  f2p: {
+    label: "F2P",
+    className: "border-border-bronze/60 text-muted bg-background-deep/40",
+  },
+  "lo-spend": {
+    label: "Lo-spend",
+    className: "border-border-bronze/60 text-muted bg-background-deep/40",
+  },
+  "mid-spend": {
+    label: "Mid-spend",
+    className: "border-amber-500/40 text-amber-200 bg-amber-500/10",
+  },
+  "hi-spend": {
+    label: "Hi-spend",
+    className: "border-orange-500/60 text-orange-300 bg-orange-500/10",
+  },
+  whale: {
+    label: "Whale",
+    className: "border-purple-500/60 text-purple-300 bg-purple-500/10",
+  },
+  kraken: {
+    label: "Kraken",
+    className: "border-fuchsia-500/60 text-fuchsia-300 bg-fuchsia-500/10",
+  },
+};
+
+export function tagStyle(slug: string, isManual = false): TagStyle {
+  const known = TAG_STYLES[slug];
+  if (known) return { ...known, manual: isManual };
+  return {
+    label: slug,
+    className: "border-border-bronze/60 text-foreground bg-background-deep/40",
+    manual: isManual,
+  };
+}
+
+/**
+ * Percentile-band style for the small pill rendered next to a stat value.
+ * Returns null when the applicant is in the unremarkable middle (under
+ * the 50th percentile or null) — caller should render nothing in that
+ * case.
+ */
+export function percentileBadge(
+  pct: number | null | undefined,
+): { label: string; className: string } | null {
+  if (pct == null || !Number.isFinite(pct)) return null;
+  if (pct >= 0.99)
+    return {
+      label: "Top 1%",
+      className: "border-yellow-500/60 text-yellow-300 bg-yellow-500/15",
+    };
+  if (pct >= 0.95)
+    return {
+      label: "Top 5%",
+      className: "border-orange-500/60 text-orange-300 bg-orange-500/15",
+    };
+  if (pct >= 0.75)
+    return {
+      label: "Top 25%",
+      className: "border-emerald-500/60 text-emerald-300 bg-emerald-500/15",
+    };
+  if (pct >= 0.5)
+    return {
+      label: "Top 50%",
+      className: "border-sky-500/60 text-sky-300 bg-sky-500/15",
+    };
+  return null;
+}

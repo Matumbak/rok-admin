@@ -82,10 +82,37 @@ export type ApplicationStatus =
   | "rejected"
   | "archived";
 
+export type SpendingTier =
+  | "f2p"
+  | "low"
+  | "mid"
+  | "high"
+  | "whale"
+  | "kraken";
+
+/**
+ * Per-application percentile bands across the active cohort
+ * (status in pending+approved). 0..1; null means the underlying
+ * stat is null on the applicant (so they aren't ranked at all).
+ */
+export type AppPercentiles = {
+  power: number | null;
+  killPoints: number | null;
+  deaths: number | null;
+  maxValorPoints: number | null;
+  cohort: number;
+};
+
 export type AppScreenshot = {
   url: string;
   pathname?: string;
-  category?: "account" | "commander" | "resource" | "dkp" | "other";
+  category?:
+    | "account"
+    | "commander"
+    | "resource"
+    | "dkp"
+    | "verification"
+    | "other";
   label?: string;
   size?: number;
   contentType?: string;
@@ -106,6 +133,21 @@ export type MigrationApplicationListItem = {
   deaths: string | null;
   marches: number | null;
   hasScrolls: boolean;
+  /// Account creation date (ISO timestamp) — derived by OCR from the
+  /// applicant's starter Scout commander screen. Null if no Scout
+  /// screenshot was provided or verification failed.
+  accountBornAt: string | null;
+  /// True iff at least one verification screenshot was OCR-confirmed
+  /// as the Scout. False = applicant uploaded a different commander.
+  scoutVerified: boolean;
+  spendingTier: SpendingTier | null;
+  overallScore: number | null;
+  /** Auto-derived tag slugs ("veteran", "f2p-hero", etc.). */
+  tags: string[] | null;
+  /** Officer-curated tag slugs. Free-form, separate from auto `tags`. */
+  manualTags: string[] | null;
+  /** Percentile bands across the active cohort. Null on archived/rejected. */
+  percentiles: AppPercentiles | null;
   status: ApplicationStatus;
   createdAt: string;
   updatedAt: string;
@@ -185,6 +227,12 @@ export type ApplicationsQuery = {
   sortDir?: "asc" | "desc";
   page?: number;
   pageSize?: number;
+  /** Score floor (0..100). Drops anyone below from the list. */
+  scoreMin?: number;
+  /** Tag-any-of filter. Repeated `tag` query param on the wire. */
+  tags?: string[];
+  /** Restrict to specific spending tiers. */
+  spendingTiers?: SpendingTier[];
   /** Range filters in normalized numeric units (e.g. powerMin: 80_000_000). */
   powerMin?: number;
   powerMax?: number;
