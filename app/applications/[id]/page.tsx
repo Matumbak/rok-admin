@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   ShieldQuestion,
+  AlertTriangle,
+  Hand,
 } from "lucide-react";
 import { applicationsApi } from "@/lib/api";
 import {
@@ -168,6 +170,31 @@ export default function ApplicationDetailPage() {
   }
 
   const screensByCat = groupScreenshots(app.screenshots ?? []);
+
+  /**
+   * Build the props bundle a stat-style watched field needs from the
+   * server-side drift + autofill data. Returns nothing if the field
+   * isn't watched. `kind` controls how we humanize numbers in the
+   * popover — "stat" → formatRokNumber, "duration" → formatMinutes.
+   */
+  const driftProps = (
+    key: string,
+    currentN: number | null,
+    kind: "stat" | "duration",
+  ) => {
+    const flag = app.driftFlags?.[key];
+    if (!flag) return {};
+    const auto = app.ocrAutofill?.[key];
+    const fmt = kind === "duration" ? formatMinutes : formatRokNumber;
+    return {
+      drift: flag,
+      autofilledLabel: typeof auto === "number" ? fmt(auto) : null,
+      currentLabel:
+        currentN != null
+          ? fmt(currentN)
+          : null,
+    };
+  };
 
   return (
     <>
@@ -388,8 +415,7 @@ export default function ApplicationDetailPage() {
             app.prevKvkT4Kills ||
             app.prevKvkT5Kills ||
             app.prevKvkDeaths ||
-            app.prevKvkKillPoints ||
-            app.prevKvkPower) && (
+            app.prevKvkKillPoints) && (
             <Card>
               <h3 className="font-semibold uppercase tracking-[0.18em] text-sm mb-1">
                 Last KvK
@@ -423,10 +449,6 @@ export default function ApplicationDetailPage() {
                     app.prevKvkKillPointsN,
                   )}
                 />
-                <Stat
-                  label="Power (snapshot)"
-                  value={displayStat(app.prevKvkPower, app.prevKvkPowerN)}
-                />
               </Grid>
             </Card>
           )}
@@ -441,12 +463,14 @@ export default function ApplicationDetailPage() {
                 value={displayStat(app.power, app.powerN)}
                 highlight
                 pct={app.percentiles?.power}
+                {...driftProps("power", app.powerN, "stat")}
               />
               <Stat
                 label="Kill points"
                 value={displayStat(app.killPoints, app.killPointsN)}
                 highlight
                 pct={app.percentiles?.killPoints}
+                {...driftProps("killPoints", app.killPointsN, "stat")}
               />
               <Stat
                 label="T1 kills"
@@ -463,15 +487,18 @@ export default function ApplicationDetailPage() {
               <Stat
                 label="T4 kills"
                 value={displayStat(app.t4Kills, app.t4KillsN)}
+                {...driftProps("t4Kills", app.t4KillsN, "stat")}
               />
               <Stat
                 label="T5 kills"
                 value={displayStat(app.t5Kills, app.t5KillsN)}
+                {...driftProps("t5Kills", app.t5KillsN, "stat")}
               />
               <Stat
                 label="Deaths"
                 value={displayStat(app.deaths, app.deathsN)}
                 pct={app.percentiles?.deaths}
+                {...driftProps("deaths", app.deathsN, "stat")}
               />
               <Stat
                 label="Resources gathered"
@@ -489,10 +516,26 @@ export default function ApplicationDetailPage() {
               Resources
             </h3>
             <Grid>
-              <Stat label="Food" value={displayStat(app.food, app.foodN)} />
-              <Stat label="Wood" value={displayStat(app.wood, app.woodN)} />
-              <Stat label="Stone" value={displayStat(app.stone, app.stoneN)} />
-              <Stat label="Gold" value={displayStat(app.gold, app.goldN)} />
+              <Stat
+                label="Food"
+                value={displayStat(app.food, app.foodN)}
+                {...driftProps("food", app.foodN, "stat")}
+              />
+              <Stat
+                label="Wood"
+                value={displayStat(app.wood, app.woodN)}
+                {...driftProps("wood", app.woodN, "stat")}
+              />
+              <Stat
+                label="Stone"
+                value={displayStat(app.stone, app.stoneN)}
+                {...driftProps("stone", app.stoneN, "stat")}
+              />
+              <Stat
+                label="Gold"
+                value={displayStat(app.gold, app.goldN)}
+                {...driftProps("gold", app.goldN, "stat")}
+              />
             </Grid>
           </Card>
 
@@ -504,22 +547,47 @@ export default function ApplicationDetailPage() {
               <Stat
                 label="Construction"
                 value={fmtDuration(app.speedupsConstructionMinutes)}
+                {...driftProps(
+                  "speedupsConstruction",
+                  app.speedupsConstructionMinutes,
+                  "duration",
+                )}
               />
               <Stat
                 label="Research"
                 value={fmtDuration(app.speedupsResearchMinutes)}
+                {...driftProps(
+                  "speedupsResearch",
+                  app.speedupsResearchMinutes,
+                  "duration",
+                )}
               />
               <Stat
                 label="Training"
                 value={fmtDuration(app.speedupsTrainingMinutes)}
+                {...driftProps(
+                  "speedupsTraining",
+                  app.speedupsTrainingMinutes,
+                  "duration",
+                )}
               />
               <Stat
                 label="Healing"
                 value={fmtDuration(app.speedupsHealingMinutes)}
+                {...driftProps(
+                  "speedupsHealing",
+                  app.speedupsHealingMinutes,
+                  "duration",
+                )}
               />
               <Stat
                 label="Universal"
                 value={fmtDuration(app.speedupsUniversalMinutes)}
+                {...driftProps(
+                  "speedupsUniversal",
+                  app.speedupsUniversalMinutes,
+                  "duration",
+                )}
               />
               <Stat
                 label="Total"
@@ -702,6 +770,9 @@ function Stat({
   mono,
   highlight,
   pct,
+  drift,
+  autofilledLabel,
+  currentLabel,
 }: {
   label: string;
   value: string;
@@ -709,6 +780,14 @@ function Stat({
   highlight?: boolean;
   /** Cohort percentile 0..1 — renders a colored band pill if in top 50%. */
   pct?: number | null;
+  /** Server-computed verdict: "auto-edited" / "manual" / null. */
+  drift?: "auto-edited" | "manual" | null;
+  /** Pre-formatted display string of what OCR auto-filled (used inside
+   *  the auto-edited popover). E.g. "84.2M" / "63d 12h". */
+  autofilledLabel?: string | null;
+  /** Pre-formatted display string of the current/final value, for the
+   *  same popover. */
+  currentLabel?: string | null;
 }) {
   const badge = percentileBadge(pct);
   return (
@@ -724,6 +803,13 @@ function Stat({
         >
           {value}
         </p>
+        {drift && (
+          <DriftBadge
+            flag={drift}
+            autofilledLabel={autofilledLabel ?? null}
+            currentLabel={currentLabel ?? null}
+          />
+        )}
         {badge && (
           <span
             className={cn(
@@ -746,6 +832,103 @@ function displayStat(raw: string | null | undefined, n: number | null | undefine
   if (n != null) return formatRokNumber(n);
   if (raw && raw.trim()) return raw;
   return "—";
+}
+
+/**
+ * Floating popover next to a Stat value when admin should look closer.
+ *
+ *   "auto-edited" → amber AlertTriangle. Popover: "Auto-parsed: X.
+ *                   Applicant submitted: Y. Compare against the source
+ *                   screenshot before approving."
+ *   "manual"      → muted Hand icon. Popover: "Filled manually — no
+ *                   OCR snapshot to verify against."
+ *
+ * The popover is hover/focus-driven and absolutely positioned; we use
+ * `peer` + opacity so we don't pull in a Radix dependency for a single
+ * tooltip. Keyboard-friendly via the inner button.
+ */
+function DriftBadge(props: {
+  flag: "auto-edited" | "manual";
+  autofilledLabel: string | null;
+  currentLabel: string | null;
+}) {
+  const isEdited = props.flag === "auto-edited";
+  const Icon = isEdited ? AlertTriangle : Hand;
+  const tone = isEdited
+    ? "border-amber-500/60 text-amber-300 bg-amber-500/15"
+    : "border-border-bronze/60 text-muted bg-background-deep/40";
+
+  return (
+    <span className="relative inline-flex group">
+      <button
+        type="button"
+        tabIndex={0}
+        aria-label={isEdited ? "Auto-edited" : "Filled manually"}
+        className={cn(
+          "inline-flex items-center justify-center h-4 w-4 border cursor-help",
+          tone,
+        )}
+      >
+        <Icon className="h-2.5 w-2.5" />
+      </button>
+      <span
+        role="tooltip"
+        className={cn(
+          "pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1 w-56 z-30",
+          "border bg-card text-foreground shadow-lg",
+          "px-2.5 py-2 text-[11px] leading-snug",
+          "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+          "transition-opacity",
+          isEdited ? "border-amber-500/60" : "border-border-bronze/60",
+        )}
+      >
+        {isEdited ? (
+          <>
+            <div className="font-semibold uppercase tracking-[0.1em] text-amber-300 text-[9px] mb-1">
+              Auto-edited (&gt; 5% drift)
+            </div>
+            <div>
+              Auto-parsed:{" "}
+              <span className="font-mono text-foreground">
+                {props.autofilledLabel ?? "—"}
+              </span>
+            </div>
+            <div>
+              Applicant:{" "}
+              <span className="font-mono text-foreground">
+                {props.currentLabel ?? "—"}
+              </span>
+            </div>
+            <div className="mt-1 text-muted">
+              Cross-check the source screenshot before approving.
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="font-semibold uppercase tracking-[0.1em] text-muted text-[9px] mb-1">
+              Filled manually
+            </div>
+            <div className="text-muted">
+              No OCR snapshot recorded for this field — value typed by hand.
+            </div>
+          </>
+        )}
+      </span>
+    </span>
+  );
+}
+
+/** Convert minutes to "63d 12h 20m" for the popover comparison. */
+function formatMinutes(minutes: number | null | undefined): string {
+  if (minutes == null || minutes <= 0) return "—";
+  const d = Math.floor(minutes / 1440);
+  const h = Math.floor((minutes % 1440) / 60);
+  const m = minutes % 60;
+  const parts: string[] = [];
+  if (d > 0) parts.push(`${d}d`);
+  if (h > 0) parts.push(`${h}h`);
+  if (m > 0 && d === 0) parts.push(`${m}m`);
+  return parts.join(" ") || `${minutes}m`;
 }
 
 /**

@@ -196,16 +196,23 @@ export type MigrationApplicationDetail = MigrationApplicationListItem & {
   /// Per-KvK stats from a DKP-scan row, separate from the lifetime
   /// account-wide power/killPoints/etc. Null when no scan was uploaded
   /// or the matching column wasn't recognised.
-  prevKvkPower: string | null;
   prevKvkKillPoints: string | null;
   prevKvkT4Kills: string | null;
   prevKvkT5Kills: string | null;
   prevKvkDeaths: string | null;
-  prevKvkPowerN: number | null;
   prevKvkKillPointsN: number | null;
   prevKvkT4KillsN: number | null;
   prevKvkT5KillsN: number | null;
   prevKvkDeathsN: number | null;
+
+  /// Snapshot of what OCR / DKP-lookup parsed at submit time, in
+  /// normalized units (raw integers for stats, minutes for speedups).
+  ocrAutofill: Record<string, number> | null;
+  /// Server-computed verdict per watched field. "auto-edited" → drift
+  /// >5% from the autofill (or applicant cleared a parsed value);
+  /// "manual" → applicant typed a value but no autofill snapshot was
+  /// recorded; null → within tolerance, no badge needed.
+  driftFlags: Record<string, "auto-edited" | "manual" | null>;
   activityHours: string | null;
   timezone: string | null;
   reason: string | null;
